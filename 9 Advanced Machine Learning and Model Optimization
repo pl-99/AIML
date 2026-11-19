@@ -1,9 +1,5 @@
 
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-
 from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
@@ -11,16 +7,12 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.metrics import accuracy_score, classification_report
 
-# 1. Load Dataset
-df = pd.read_csv(r"C:\Users\hp\Downloads\Breast cancer dataset.csv")
-
+# Load dataset
+df = pd.read_csv(r"C:\Users\hp\Downloads\Breast_cancer_dataset.csv")
 df.columns = df.columns.str.strip().str.lower()
 df = df.drop(columns=["id"], errors="ignore")
 
-print("\nFirst Five Records:")
-print(df.head())
-
-# 2. Data Preprocessing
+# Data preprocessing
 df["diagnosis"] = df["diagnosis"].astype(str).str.strip().str.upper()
 df["diagnosis"] = df["diagnosis"].map({"M": 1, "B": 0})
 
@@ -33,28 +25,18 @@ y = df["diagnosis"]
 data = pd.concat([X, y], axis=1).dropna()
 X, y = data[features], data["diagnosis"].astype(int)
 
-print("\nDataset Shape:", X.shape)
-print("\nMissing Values:", X.isnull().sum().sum())
-
-# 3. Train-Test Split
+# Train-test split
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 
-print("\nTraining Shape:", X_train.shape)
-print("Testing Shape:", X_test.shape)
-
-# 4. Define Models
+# Define models
 models = {
-    "SVM": Pipeline([
-        ("scaler", StandardScaler()),
-        ("classifier", SVC())
-    ]),
+    "SVM": Pipeline([("scaler", StandardScaler()), ("classifier", SVC())]),
     "Random Forest": RandomForestClassifier(random_state=42),
     "AdaBoost": AdaBoostClassifier(random_state=42)
 }
 
-# 5. Hyperparameter Values
 parameters = {
     "SVM": {
         "classifier__C": [0.1, 1, 10],
@@ -73,8 +55,8 @@ parameters = {
 baseline = {}
 optimized = {}
 
-# 6. Baseline Performance
-print("\n========== BASELINE PERFORMANCE ==========")
+# Baseline performance and cross validation
+print("\nBASELINE PERFORMANCE")
 
 for name, model in models.items():
     model.fit(X_train, y_train)
@@ -84,74 +66,37 @@ for name, model in models.items():
 
     scores = cross_val_score(model, X_train, y_train, cv=5)
 
-    print("\nAlgorithm:", name)
+    print("\n", name)
     print("Accuracy:", round(baseline[name], 4))
     print("5-Fold CV Accuracy:", round(scores.mean(), 4))
 
-# 7. Grid Search Optimization
-print("\n========== OPTIMIZED PERFORMANCE ==========")
+# Grid Search optimization
+print("\nOPTIMIZED PERFORMANCE")
 
 for name, model in models.items():
-    grid = GridSearchCV(
-        model, parameters[name], cv=5,
-        scoring="accuracy", n_jobs=-1
-    )
-
+    grid = GridSearchCV(model, parameters[name], cv=5,
+                        scoring="accuracy", n_jobs=-1)
     grid.fit(X_train, y_train)
-    pred = grid.predict(X_test)
 
+    pred = grid.predict(X_test)
     optimized[name] = accuracy_score(y_test, pred)
 
-    print("\nAlgorithm:", name)
+    print("\n", name)
     print("Best Parameters:", grid.best_params_)
     print("Best CV Accuracy:", round(grid.best_score_, 4))
     print("Optimized Test Accuracy:", round(optimized[name], 4))
 
     print("\nClassification Report:")
     print(classification_report(
-        y_test, pred,
-        target_names=["Benign", "Malignant"],
+        y_test, pred, target_names=["Benign", "Malignant"],
         zero_division=0
     ))
 
-# 8. Final Comparison
+# Final comparison
 print("\n========== FINAL COMPARISON ==========")
 print("Algorithm\tBaseline\tOptimized")
 
 for name in models:
     print(f"{name}\t{baseline[name]:.4f}\t\t{optimized[name]:.4f}")
 
-# 9. Accuracy Comparison Graph
-x = np.arange(len(models))
-width = 0.35
-
-plt.figure(figsize=(9, 5))
-plt.bar(x-width/2, list(baseline.values()), width, label="Baseline")
-plt.bar(x+width/2, list(optimized.values()), width, label="Optimized")
-
-plt.xticks(x, models.keys())
-plt.xlabel("Algorithms")
-plt.ylabel("Accuracy")
-plt.title("Baseline vs Optimized Accuracy")
-plt.legend()
-plt.grid(axis="y", alpha=0.3)
-plt.tight_layout()
-plt.show()
-
-# 10. Diagnosis Distribution
-plt.figure(figsize=(6, 4))
-sns.countplot(x=y.map({0: "Benign", 1: "Malignant"}))
-plt.title("Diagnosis Distribution")
-plt.xlabel("Diagnosis")
-plt.ylabel("Count")
-plt.tight_layout()
-plt.show()
-
-# 11. Correlation Heatmap
-plt.figure(figsize=(9, 6))
-sns.heatmap(X.corr(), annot=True, cmap="coolwarm", fmt=".2f")
-plt.title("Feature Correlation Heatmap")
-plt.tight_layout()
-plt.show()
-
-print("\nPROGRAM EXECUTED SUCCESSFULLY!")
+print("\nPROGRAM EXECUTED SUCCESSFULLY")
